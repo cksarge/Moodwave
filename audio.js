@@ -175,17 +175,26 @@ function drumHit(pattern, step) {
 // ---------------------------------------------------------------------------
 
 /**
- * Creates the audio engine. Nothing touches the AudioContext until start()
- * is called from a user gesture (browsers block autoplay otherwise).
+ * Creates the audio engine. Nothing touches the AudioContext until start(),
+ * unlock() or setSource() is called from a user gesture (browsers block
+ * autoplay otherwise).
  */
 export function createEngine() {
   let ctx = null;
-  let master, analyser, reverb, noise, freqData;
+  let master, mix, synthBus, analyser, reverb, noise, freqData;
   let players = [];        // one per mood; more than one only during a crossfade
   let currentKey = Object.keys(MOODS)[0];
   let volume = 0.7;
   let paused = true;
   let suspendTimer = 0;
+
+  // What the visuals listen to: 'synth' (generated music), 'mic' or 'file'.
+  let source = 'synth';
+  let micStream = null, micNode = null;
+  let mediaEl = null, fileUrl = null;
+
+  // Per-mood tempo/key overrides set by the user: { [moodKey]: { bpm, root } }.
+  const tweaks = {};
 
   // Analysis state, reused every frame to avoid garbage.
   const levels = { volume: 0, bass: 0, mid: 0, treble: 0, bassHit: false, spectrum: new Uint8Array(0) };
@@ -194,14 +203,19 @@ export function createEngine() {
 
   // ---- Audio graph -------------------------------------------------------
 
-  // players → master → compressor → analyser → speakers
-  //        ↘ reverb ↗
+  // players → synthBus → compressor ┐
+  //  ↘ reverb ↗                      ├→ mix → master (volume) → speakers
+  // audio file ──────────────────────┘    ↘ analyser
+  // microphone ──────────────────────────→ analyser (never to the speakers, to avoid feedback)
   function buildGraph() {
-    const AudioCtx = window.AudioContext || window.webkitAudioContext;
-    ctx = new AudioCtx();
+    ctx = new AudioContext();
 
     master = ctx.createGain();
     master.gain.value = 0;
+    master.connect(ctx.destination);
+
+    mix = ctx.createGain();
+    mix.connect(master);
 
     const compressor = ctx.createDynamicsCompressor();
     compressor.threshold.value = -14;
@@ -215,11 +229,19 @@ export function createEngine() {
     freqData = new Uint8Array(analyser.frequencyBinCount);
     levels.spectrum = freqData; // raw 0–255 bins, refreshed by getLevels()
 
-    master.connect(compressor).connect(analyser).connect(ctx.destination);
+    // The analyser taps the mix before the volume control, so visuals react even when muted.
+    // It also gets a silent route to the speakers, since some browsers only process nodes that reach them.
+    mix.connect(analyser);
+    const sink = ctx.createGain();
+    sink.gain.value = 0;
+    analyser.connect(sink).connect(ctx.destination);
+
+    synthBus = ctx.createGain();
+    synthBus.connect(compressor).connect(mix);
 
     reverb = ctx.createConvolver();
     reverb.buffer = makeImpulse(3.2, 2.5);
-    reverb.connect(master);
+    reverb.connect(synthBus);
 
     noise = makeNoise(1);
   }
@@ -319,7 +341,8 @@ export function createEngine() {
 
   /** A player plays one mood on its own gain bus so moods can crossfade. */
   function createPlayer(key) {
-    const music = MOODS[key].music;
+    // Each player gets its own copy so tempo/key tweaks don't modify MOODS.
+    const music = { ...MOODS[key].music, ...tweaks[key] };
     const now = ctx.currentTime;
 
     const bus = ctx.createGain();
@@ -327,7 +350,7 @@ export function createEngine() {
     bus.gain.linearRampToValueAtTime(1, now + CROSSFADE);
     const wet = ctx.createGain();
     wet.gain.value = music.reverb;
-    bus.connect(master);
+    bus.connect(synthBus);
     bus.connect(wet).connect(reverb);
 
     return { key, music, bus, wet, step: 0, bar: -1, chord: 0, inversion: false, motif: makeMotif(music.lead), nextTime: now + 0.05, retireAt: Infinity };
@@ -427,49 +450,134 @@ export function createEngine() {
 
   // ---- Public API --------------------------------------------------------
 
-  /** Switches mood with a crossfade. Safe to call before start(). */
+  /**
+   * Fades out every active player. While paused the audio clock is frozen,
+   * so a fade would only start on resume and the old music would be heard;
+   * nothing is audible then anyway, so players are dropped instantly.
+   */
+  function retirePlayers(fade) {
+    const now = ctx.currentTime;
+    for (const p of players) {
+      if (paused) {
+        p.bus.disconnect();
+        p.wet.disconnect();
+        continue;
+      }
+      if (p.retireAt !== Infinity) continue;
+      p.bus.gain.cancelScheduledValues(now);
+      p.bus.gain.setValueAtTime(p.bus.gain.value, now);
+      p.bus.gain.linearRampToValueAtTime(0, now + fade);
+      p.retireAt = now + fade;
+    }
+    if (paused) players = [];
+  }
+
+  /** Switches mood with a crossfade. Safe to call before start(). Only affects the music in 'synth' mode. */
   function setMood(key) {
     if (!MOODS[key]) return;
     currentKey = key;
-    if (!ctx) return;
+    if (!ctx || source !== 'synth') return;
 
     const active = players.find((p) => p.retireAt === Infinity);
     if (active && active.key === key) return;
 
-    const now = ctx.currentTime;
-
-    // While paused the audio clock is frozen, so a crossfade would only start
-    // on resume and both moods would be heard. Nothing is audible, so swap instantly.
+    retirePlayers(CROSSFADE);
+    const fresh = createPlayer(key);
     if (paused) {
-      for (const p of players) {
-        p.bus.disconnect();
-        p.wet.disconnect();
-      }
-      const fresh = createPlayer(key);
-      fresh.bus.gain.cancelScheduledValues(now);
-      fresh.bus.gain.setValueAtTime(1, now);
-      players = [fresh];
-      return;
+      // Silent anyway, so skip the fade-in.
+      fresh.bus.gain.cancelScheduledValues(ctx.currentTime);
+      fresh.bus.gain.setValueAtTime(1, ctx.currentTime);
     }
-
-    for (const p of players) {
-      if (p.retireAt !== Infinity) continue;
-      p.bus.gain.cancelScheduledValues(now);
-      p.bus.gain.setValueAtTime(p.bus.gain.value, now);
-      p.bus.gain.linearRampToValueAtTime(0, now + CROSSFADE);
-      p.retireAt = now + CROSSFADE;
-    }
-    players.push(createPlayer(key));
+    players.push(fresh);
   }
 
-  /** Must be called from a click/tap handler. Returns a promise. */
-  function start(key = currentKey) {
+  // ---- Per-mood tempo & key ----------------------------------------------
+
+  /** Current { bpm, root } for a mood: the user's tweaks, or the MOODS defaults. */
+  function getMoodSettings(key) {
+    const { bpm, root } = MOODS[key].music;
+    return { bpm, root, ...tweaks[key] };
+  }
+
+  /** Changes a mood's tempo and/or key. Takes effect on the next note if that mood is playing. */
+  function setMoodSettings(key, settings) {
+    tweaks[key] = { ...tweaks[key], ...settings };
+    applySettings(key);
+  }
+
+  function resetMoodSettings(key) {
+    delete tweaks[key];
+    applySettings(key);
+  }
+
+  function applySettings(key) {
+    const settings = getMoodSettings(key);
+    for (const p of players) {
+      if (p.key === key && p.retireAt === Infinity) Object.assign(p.music, settings);
+    }
+  }
+
+  // ---- Sources & transport -----------------------------------------------
+
+  /** Creates/resumes the AudioContext. Must be called from a click/tap handler. */
+  function unlock() {
     if (!ctx) {
       buildGraph();
       setInterval(tick, TICK_MS);
     }
-    setMood(key);
+    return ctx.resume();
+  }
+
+  function leaveSource() {
+    if (source === 'synth') retirePlayers(0.3);
+    if (source === 'mic' && micStream) {
+      micNode.disconnect();
+      micStream.getTracks().forEach((track) => track.stop());
+      micStream = micNode = null;
+    }
+    if (source === 'file' && mediaEl) mediaEl.pause();
+  }
+
+  /**
+   * Switches what plays and what the visuals react to:
+   *   'synth'        generated music for the current mood
+   *   'mic'          the microphone (analysed only, never played back)
+   *   'file', file   an audio File chosen by the user, looped
+   * Rejects if microphone access is denied; the current source then keeps playing.
+   */
+  async function setSource(type, file) {
+    unlock();
+    if (type === 'mic') {
+      // Raw input works best for music; voice processing would flatten it.
+      const stream = await navigator.mediaDevices.getUserMedia({
+        audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false },
+      });
+      leaveSource();
+      micStream = stream;
+      micNode = ctx.createMediaStreamSource(stream);
+      micNode.connect(analyser);
+    } else if (type === 'file') {
+      leaveSource();
+      if (!mediaEl) {
+        mediaEl = new Audio();
+        mediaEl.loop = true;
+        ctx.createMediaElementSource(mediaEl).connect(mix);
+      }
+      if (fileUrl) URL.revokeObjectURL(fileUrl);
+      fileUrl = URL.createObjectURL(file);
+      mediaEl.src = fileUrl;
+    } else if (source !== 'synth') {
+      leaveSource();
+    }
+    source = type;
+    setMood(currentKey); // starts the generated music when switching to 'synth'
     return play();
+  }
+
+  /** Starts generated music. Must be called from a click/tap handler. */
+  function start(key = currentKey) {
+    currentKey = key;
+    return setSource('synth');
   }
 
   function play() {
@@ -478,16 +586,20 @@ export function createEngine() {
     clearTimeout(suspendTimer);
     return ctx.resume().then(() => {
       master.gain.setTargetAtTime(volume, ctx.currentTime, 0.05);
+      if (source === 'file') return mediaEl.play();
     });
   }
 
   function pause() {
     if (!ctx) return;
     paused = true;
-    // Fade out quickly before suspending to avoid a click.
+    // Fade out quickly before stopping to avoid a click.
     master.gain.setTargetAtTime(0, ctx.currentTime, 0.03);
     clearTimeout(suspendTimer);
-    suspendTimer = setTimeout(() => ctx.suspend(), 150);
+    suspendTimer = setTimeout(() => {
+      if (source === 'file') mediaEl.pause();
+      ctx.suspend();
+    }, 150);
   }
 
   function setVolume(value) {
@@ -529,7 +641,8 @@ export function createEngine() {
 
     // Onset detection: bass jumps clearly above its recent average.
     const now = ctx.currentTime;
-    levels.bassHit = levels.bass > bassAvg * 1.18 + 0.04 && levels.bass > 0.25 && now - lastHit > 0.18;
+    const floor = source === 'synth' ? 0.25 : 0.15; // mics and recordings are often quieter
+    levels.bassHit = levels.bass > bassAvg * 1.18 + 0.04 && levels.bass > floor && now - lastHit > 0.18;
     if (levels.bassHit) lastHit = now;
     bassAvg += (levels.bass - bassAvg) * 0.08;
 
@@ -538,12 +651,18 @@ export function createEngine() {
 
   return {
     start,
+    unlock,
+    setSource,
     play,
     pause,
     setMood,
     setVolume,
+    getMoodSettings,
+    setMoodSettings,
+    resetMoodSettings,
     getLevels,
     get isPlaying() { return !!ctx && !paused; },
+    get source() { return source; },
     get analyser() { return analyser; },
   };
 }

@@ -817,7 +817,10 @@ export function createVisuals(canvas, getLevels) {
       rafId = 0;
       last = 0;
     },
-    /** Resolves with a PNG Blob of the current frame. */
+    /**
+     * Resolves with a PNG of the current frame (null if the browser can't encode it).
+     * @returns {Promise<Blob | null>}
+     */
     snapshot() {
       return new Promise((resolve) => canvas.toBlob(resolve, 'image/png'));
     },

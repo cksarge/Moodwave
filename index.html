@@ -23,11 +23,44 @@
       <div id="welcome-moods" class="mood-list" role="group" aria-label="Moods"></div>
       <button id="start-btn" class="btn-start" type="button">Start</button>
       <p class="welcome__hint">Music is generated live in your browser, so turn your sound on.</p>
+      <div class="welcome__alt">
+        <span>Or visualize your own music:</span>
+        <button id="welcome-mic" class="btn-ghost" type="button">Microphone</button>
+        <button id="welcome-file" class="btn-ghost" type="button">Audio file</button>
+      </div>
+      <p id="welcome-status" class="welcome__status" role="status"></p>
     </div>
   </section>
 
   <!-- Controls (shown after Start, fade out when idle) -->
   <div id="controls" class="controls" hidden>
+    <!-- Settings panel, toggled by the sliders button -->
+    <div id="settings" class="settings" hidden>
+      <div class="settings__row">
+        <span class="settings__label">Sound</span>
+        <div class="segmented" role="group" aria-label="Sound source">
+          <button type="button" data-source="synth" aria-pressed="true">Generated</button>
+          <button type="button" data-source="mic" aria-pressed="false">Microphone</button>
+          <button type="button" data-source="file" aria-pressed="false">File</button>
+        </div>
+      </div>
+
+      <fieldset id="mood-tuning" class="settings__tuning">
+        <legend class="settings__label">Mood music</legend>
+        <label class="settings__field">
+          <span>Tempo <output id="tempo-value"></output></span>
+          <input id="tempo" type="range" min="40" max="180" step="1" aria-label="Tempo">
+        </label>
+        <label class="settings__field">
+          <span>Key</span>
+          <select id="key" aria-label="Key"></select>
+        </label>
+        <button id="reset-mood" class="btn-text" type="button">Reset</button>
+      </fieldset>
+
+      <p id="settings-status" class="settings__status" role="status"></p>
+    </div>
+
     <div id="control-moods" class="mood-list" role="group" aria-label="Moods"></div>
 
     <div class="controls__row">
@@ -50,6 +83,10 @@
         <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="7" cy="7" r="3.2" fill="none" stroke="currentColor" stroke-width="1.8"/><rect x="13.5" y="3.8" width="6.5" height="6.5" rx="1" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M7 13.5l3.8 6.5H3.2z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M14 17h6m-2.5-2.5L20 17l-2.5 2.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
       </button>
 
+      <button id="settings-btn" class="icon-btn" type="button" aria-label="Sound &amp; tempo settings" aria-expanded="false" aria-controls="settings" title="Settings">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h10M18 7h2M4 17h2M10 17h10" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><circle cx="16" cy="7" r="2.2" fill="none" stroke="currentColor" stroke-width="1.8"/><circle cx="8" cy="17" r="2.2" fill="none" stroke="currentColor" stroke-width="1.8"/></svg>
+      </button>
+
       <button id="screenshot-btn" class="icon-btn" type="button" aria-label="Save screenshot" title="Screenshot (S)">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8h3l2-3h6l2 3h3v11H4z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><circle cx="12" cy="13" r="3.5" fill="none" stroke="currentColor" stroke-width="1.8"/></svg>
       </button>
@@ -60,6 +97,8 @@
       </button>
     </div>
   </div>
+
+  <input id="file-input" type="file" accept="audio/*" hidden>
 
   <noscript><p class="noscript">moodwave needs JavaScript to generate music and visuals.</p></noscript>
 </body>

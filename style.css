@@ -25,12 +25,12 @@
   --space-6: 40px;
 
   /* Shape & motion */
+  --radius-sm: 10px;
   --radius: 16px;
   --radius-lg: 28px;
   --radius-pill: 999px;
   --tap: 44px;
   --ease: cubic-bezier(0.22, 0.8, 0.24, 1);
-  --font: ui-rounded, "SF Pro Rounded", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
 
   color-scheme: dark;
 }
@@ -52,7 +52,7 @@ body {
   overflow: hidden;
   background: var(--bg);
   color: var(--text);
-  font-family: var(--font);
+  font-family: ui-rounded, "SF Pro Rounded", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   -webkit-font-smoothing: antialiased;
   -webkit-tap-highlight-color: transparent;
 }
@@ -187,6 +187,9 @@ body.flash::before {
 }
 
 .mood-btn {
+  /* Palette colors; main.js overrides these per button. */
+  --c1: var(--accent);
+  --c2: var(--accent-2);
   display: inline-flex;
   align-items: center;
   gap: var(--space-2);
@@ -309,8 +312,11 @@ body.flash::before {
 }
 
 .slider input {
-  --fill: 50%;
   width: 110px;
+}
+
+input[type="range"] {
+  --fill: 50%;
   height: var(--tap);
   margin: 0;
   background: transparent;
@@ -319,19 +325,19 @@ body.flash::before {
   cursor: pointer;
 }
 
-.slider input::-webkit-slider-runnable-track {
+input[type="range"]::-webkit-slider-runnable-track {
   height: 4px;
   border-radius: var(--radius-pill);
   background: linear-gradient(to right, var(--accent) var(--fill), var(--track) var(--fill));
 }
 
-.slider input::-moz-range-track {
+input[type="range"]::-moz-range-track {
   height: 4px;
   border-radius: var(--radius-pill);
   background: linear-gradient(to right, var(--accent) var(--fill), var(--track) var(--fill));
 }
 
-.slider input::-webkit-slider-thumb {
+input[type="range"]::-webkit-slider-thumb {
   -webkit-appearance: none;
   width: 18px;
   height: 18px;
@@ -342,13 +348,172 @@ body.flash::before {
   box-shadow: 0 0 0 4px rgba(255, 255, 255, 0.12), 0 0 14px var(--accent);
 }
 
-.slider input::-moz-range-thumb {
+input[type="range"]::-moz-range-thumb {
   width: 18px;
   height: 18px;
   border: 0;
   border-radius: 50%;
   background: #fff;
   box-shadow: 0 0 0 4px rgba(255, 255, 255, 0.12), 0 0 14px var(--accent);
+}
+
+/* ---- Welcome: your own music ------------------------------------------ */
+
+.welcome__alt {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  margin-top: var(--space-4);
+  font-size: 0.85rem;
+  color: var(--text-dim);
+}
+
+.btn-ghost {
+  min-height: 36px;
+  padding: 0 var(--space-4);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-pill);
+  background: var(--glass-chip);
+  font-size: 0.85rem;
+  font-weight: 600;
+  transition: background 0.25s, transform 0.2s var(--ease);
+}
+
+.welcome__status:empty,
+.settings__status:empty {
+  display: none;
+}
+
+.welcome__status,
+.settings__status {
+  margin: var(--space-3) 0 0;
+  font-size: 0.8rem;
+  color: var(--accent);
+}
+
+/* ---- Settings panel ----------------------------------------------------- */
+
+.settings {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  width: 100%;
+  padding-bottom: var(--space-3);
+  border-bottom: 1px solid var(--glass-border);
+  animation: fade-in 0.3s var(--ease) both;
+}
+
+.settings__row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.settings__label {
+  padding: 0;
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+}
+
+.segmented {
+  display: inline-flex;
+  padding: 3px;
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-pill);
+  background: var(--glass-chip);
+}
+
+.segmented button {
+  min-height: 36px;
+  padding: 0 var(--space-4);
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: transparent;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-dim);
+  transition: background 0.25s, color 0.25s;
+}
+
+.segmented button[aria-pressed="true"] {
+  background: linear-gradient(135deg, var(--accent), var(--accent-2));
+  color: var(--text-on-accent);
+}
+
+.settings__tuning {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2) var(--space-4);
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  transition: opacity 0.3s;
+}
+
+.settings__tuning:disabled {
+  opacity: 0.4;
+}
+
+.settings__tuning legend {
+  float: left; /* lets the legend sit inline with the fields */
+}
+
+.settings__field {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: 0.85rem;
+  color: var(--text-dim);
+}
+
+.settings__field output {
+  display: inline-block;
+  min-width: 4.5em;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+
+.settings__field input[type="range"] {
+  width: 140px;
+}
+
+.settings__field select {
+  min-height: 36px;
+  padding: 0 var(--space-3);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-sm);
+  background: var(--glass-chip);
+  color: var(--text);
+  font: inherit;
+  font-size: 0.85rem;
+}
+
+.settings__field select option {
+  background: var(--bg);
+}
+
+.btn-text {
+  min-height: 36px;
+  padding: 0 var(--space-2);
+  border: 0;
+  background: none;
+  font-size: 0.85rem;
+  color: var(--text-dim);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+#settings-btn[aria-expanded="true"] {
+  background: var(--glass-hover);
+  border-color: var(--accent);
 }
 
 /* ---- Idle: hide UI and cursor while just watching ------------------------ */
@@ -367,7 +532,9 @@ body.idle .controls {
 
 @media (hover: hover) {
   .mood-btn:hover:not([aria-pressed="true"]),
-  .icon-btn:not(.icon-btn--primary):hover {
+  .icon-btn:not(.icon-btn--primary):hover,
+  .btn-ghost:hover,
+  .segmented button:hover:not([aria-pressed="true"]) {
     background: var(--glass-hover);
   }
 
@@ -429,6 +596,10 @@ body.idle .controls {
 
   .slider span {
     display: none;
+  }
+
+  .settings__field input[type="range"] {
+    width: min(140px, 36vw);
   }
 
   .slider input {
