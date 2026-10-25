@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>moodwave — mood-based music visualizer</title>
+  <meta name="description" content="Pick a mood and moodwave generates original music and a matching audio-reactive visual, live in your browser.">
+  <meta name="theme-color" content="#07070d">
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="apple-touch-icon.png">
+  <link rel="stylesheet" href="style.css">
+  <script type="module" src="main.js"></script>
+</head>
+<body>
+  <!-- Full-screen animation (visuals.js) -->
+  <canvas id="stage" role="img" aria-label="Animated, music-reactive visual"></canvas>
+
+  <!-- Welcome screen -->
+  <section id="welcome" class="welcome" aria-labelledby="welcome-title">
+    <div class="welcome__card">
+      <h1 id="welcome-title" class="brand">moodwave</h1>
+      <p class="welcome__lead">Pick a mood</p>
+      <div id="welcome-moods" class="mood-list" role="group" aria-label="Moods"></div>
+      <button id="start-btn" class="btn-start" type="button">Start</button>
+      <p class="welcome__hint">Music is generated live in your browser, so turn your sound on.</p>
+    </div>
+  </section>
+
+  <!-- Controls (shown after Start, fade out when idle) -->
+  <div id="controls" class="controls" hidden>
+    <div id="control-moods" class="mood-list" role="group" aria-label="Moods"></div>
+
+    <div class="controls__row">
+      <button id="play-btn" class="icon-btn icon-btn--primary" type="button" aria-label="Pause" data-playing="true">
+        <svg class="icon-play" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5.5v13l11-6.5z" fill="currentColor"/></svg>
+        <svg class="icon-pause" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 5h3.5v14H7zM13.5 5H17v14h-3.5z" fill="currentColor"/></svg>
+      </button>
+
+      <label class="slider">
+        <span>Volume</span>
+        <input id="volume" type="range" aria-label="Volume" min="0" max="100" value="70">
+      </label>
+
+      <label class="slider">
+        <span>Intensity</span>
+        <input id="intensity" type="range" aria-label="Intensity" min="0" max="100" value="50">
+      </label>
+
+      <button id="next-shape-btn" class="icon-btn" type="button" aria-label="Next shapes" title="Next shapes (N)">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="7" cy="7" r="3.2" fill="none" stroke="currentColor" stroke-width="1.8"/><rect x="13.5" y="3.8" width="6.5" height="6.5" rx="1" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M7 13.5l3.8 6.5H3.2z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M14 17h6m-2.5-2.5L20 17l-2.5 2.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
+
+      <button id="screenshot-btn" class="icon-btn" type="button" aria-label="Save screenshot" title="Screenshot (S)">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8h3l2-3h6l2 3h3v11H4z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><circle cx="12" cy="13" r="3.5" fill="none" stroke="currentColor" stroke-width="1.8"/></svg>
+      </button>
+
+      <button id="fullscreen-btn" class="icon-btn" type="button" aria-label="Fullscreen" title="Fullscreen (F)" data-active="false">
+        <svg class="icon-expand" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9V4h5M15 4h5v5M20 15v5h-5M9 20H4v-5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <svg class="icon-shrink" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 4v5H4M20 9h-5V4M15 20v-5h5M4 15h5v5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
+    </div>
+  </div>
+
+  <noscript><p class="noscript">moodwave needs JavaScript to generate music and visuals.</p></noscript>
+</body>
+</html>

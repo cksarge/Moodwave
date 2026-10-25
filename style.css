@@ -1,0 +1,473 @@
+/* ==========================================================================
+   moodwave — styles
+   ========================================================================== */
+
+:root {
+  /* Colors (--accent / --accent-2 are updated by main.js to match the mood) */
+  --bg: #07070d;
+  --text: #f4f3ff;
+  --text-dim: rgba(244, 243, 255, 0.68);
+  --text-on-accent: #0b0b14;
+  --glass: rgba(16, 14, 28, 0.5);
+  --glass-hover: rgba(255, 255, 255, 0.12);
+  --glass-chip: rgba(255, 255, 255, 0.06);
+  --glass-border: rgba(255, 255, 255, 0.12);
+  --track: rgba(255, 255, 255, 0.18);
+  --accent: #7fb3ff;
+  --accent-2: #a99cff;
+
+  /* Spacing */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 40px;
+
+  /* Shape & motion */
+  --radius: 16px;
+  --radius-lg: 28px;
+  --radius-pill: 999px;
+  --tap: 44px;
+  --ease: cubic-bezier(0.22, 0.8, 0.24, 1);
+  --font: ui-rounded, "SF Pro Rounded", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+
+  color-scheme: dark;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+[hidden] {
+  display: none !important;
+}
+
+html,
+body {
+  margin: 0;
+  height: 100%;
+  overflow: hidden;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font);
+  -webkit-font-smoothing: antialiased;
+  -webkit-tap-highlight-color: transparent;
+}
+
+body {
+  overscroll-behavior: none;
+}
+
+button {
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+}
+
+/* ---- Canvas ------------------------------------------------------------- */
+
+#stage {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+  touch-action: none; /* taps go to the canvas instead of scrolling/zooming */
+}
+
+/* Soft vignette for depth (not part of screenshots). */
+body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  background: radial-gradient(ellipse at center, transparent 55%, rgba(0, 0, 0, 0.45));
+}
+
+/* Screenshot flash. */
+body.flash::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 10;
+  pointer-events: none;
+  background: #fff;
+  animation: flash 0.45s ease-out forwards;
+}
+
+/* ---- Welcome screen ----------------------------------------------------- */
+
+.welcome {
+  position: fixed;
+  inset: 0;
+  z-index: 3;
+  display: grid;
+  place-items: center;
+  padding: var(--space-5) var(--space-4);
+  background: radial-gradient(circle at 50% 40%, rgba(7, 7, 13, 0.2), rgba(7, 7, 13, 0.75));
+  transition: opacity 0.8s var(--ease), visibility 0.8s;
+}
+
+.welcome.is-hidden {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.welcome__card {
+  width: min(560px, 100%);
+  padding: var(--space-6) var(--space-5);
+  text-align: center;
+  background: var(--glass);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-lg);
+  backdrop-filter: blur(18px) saturate(140%);
+  -webkit-backdrop-filter: blur(18px) saturate(140%);
+  box-shadow: 0 30px 80px rgba(0, 0, 0, 0.45);
+  animation: rise 0.9s var(--ease) both;
+}
+
+.brand {
+  margin: 0;
+  font-size: clamp(2.6rem, 10vw, 4.5rem);
+  font-weight: 800;
+  letter-spacing: -0.04em;
+  line-height: 1.05;
+  background: linear-gradient(100deg, var(--accent), var(--accent-2), var(--accent));
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: shimmer 6s linear infinite;
+}
+
+.welcome__lead {
+  margin: var(--space-2) 0 var(--space-5);
+  font-size: 1.25rem;
+  color: var(--text-dim);
+}
+
+.btn-start {
+  min-height: 52px;
+  margin-top: var(--space-5);
+  padding: 0 var(--space-6);
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: linear-gradient(135deg, var(--accent), var(--accent-2));
+  color: var(--text-on-accent);
+  font-size: 1.1rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  box-shadow: 0 10px 30px -8px var(--accent);
+  transition: transform 0.25s var(--ease), box-shadow 0.25s var(--ease), background 0.6s;
+}
+
+.welcome__hint {
+  margin: var(--space-4) 0 0;
+  font-size: 0.85rem;
+  color: var(--text-dim);
+}
+
+/* ---- Mood buttons ------------------------------------------------------- */
+
+.mood-list {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--space-2);
+}
+
+.mood-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: var(--tap);
+  padding: 0 18px;
+  flex-shrink: 0;
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-pill);
+  background: var(--glass-chip);
+  font-size: 0.95rem;
+  font-weight: 600;
+  transition: background 0.3s, color 0.3s, box-shadow 0.3s, transform 0.2s var(--ease);
+}
+
+/* Color dot previewing the mood's palette. */
+.mood-btn::before {
+  content: "";
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--c1), var(--c2));
+  box-shadow: 0 0 8px var(--c1);
+}
+
+.mood-btn[aria-pressed="true"] {
+  border-color: transparent;
+  background: linear-gradient(135deg, var(--c1), var(--c2));
+  color: var(--text-on-accent);
+  box-shadow: 0 0 24px -4px var(--c1);
+}
+
+.mood-btn[aria-pressed="true"]::before {
+  background: var(--text-on-accent);
+  box-shadow: none;
+}
+
+/* ---- Control bar -------------------------------------------------------- */
+
+.controls {
+  position: fixed;
+  left: 50%;
+  bottom: max(var(--space-4), env(safe-area-inset-bottom));
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-3);
+  width: max-content;
+  max-width: calc(100% - 2 * var(--space-4));
+  padding: var(--space-3) var(--space-4);
+  background: var(--glass);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-lg);
+  backdrop-filter: blur(16px) saturate(140%);
+  -webkit-backdrop-filter: blur(16px) saturate(140%);
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.35);
+  transform: translateX(-50%);
+  transition: opacity 0.6s var(--ease), transform 0.6s var(--ease);
+  animation: fade-in 0.8s var(--ease) both;
+}
+
+.controls__row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-3);
+}
+
+.icon-btn {
+  display: grid;
+  place-items: center;
+  width: var(--tap);
+  height: var(--tap);
+  padding: 0;
+  border: 1px solid var(--glass-border);
+  border-radius: 50%;
+  background: var(--glass-chip);
+  transition: background 0.25s, transform 0.2s var(--ease);
+}
+
+.icon-btn svg {
+  width: 20px;
+  height: 20px;
+}
+
+.icon-btn--primary {
+  width: 52px;
+  height: 52px;
+  border: 0;
+  background: linear-gradient(135deg, var(--accent), var(--accent-2));
+  color: var(--text-on-accent);
+  box-shadow: 0 6px 20px -6px var(--accent);
+}
+
+.icon-btn--primary svg {
+  width: 24px;
+  height: 24px;
+}
+
+/* Icon swaps driven by data attributes set in main.js. */
+#play-btn[data-playing="true"] .icon-play,
+#play-btn[data-playing="false"] .icon-pause,
+#fullscreen-btn[data-active="true"] .icon-expand,
+#fullscreen-btn[data-active="false"] .icon-shrink {
+  display: none;
+}
+
+/* ---- Sliders ------------------------------------------------------------ */
+
+.slider {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+}
+
+.slider input {
+  --fill: 50%;
+  width: 110px;
+  height: var(--tap);
+  margin: 0;
+  background: transparent;
+  -webkit-appearance: none;
+  appearance: none;
+  cursor: pointer;
+}
+
+.slider input::-webkit-slider-runnable-track {
+  height: 4px;
+  border-radius: var(--radius-pill);
+  background: linear-gradient(to right, var(--accent) var(--fill), var(--track) var(--fill));
+}
+
+.slider input::-moz-range-track {
+  height: 4px;
+  border-radius: var(--radius-pill);
+  background: linear-gradient(to right, var(--accent) var(--fill), var(--track) var(--fill));
+}
+
+.slider input::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 18px;
+  height: 18px;
+  margin-top: -7px;
+  border: 0;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 0 0 4px rgba(255, 255, 255, 0.12), 0 0 14px var(--accent);
+}
+
+.slider input::-moz-range-thumb {
+  width: 18px;
+  height: 18px;
+  border: 0;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 0 0 4px rgba(255, 255, 255, 0.12), 0 0 14px var(--accent);
+}
+
+/* ---- Idle: hide UI and cursor while just watching ------------------------ */
+
+body.idle {
+  cursor: none;
+}
+
+body.idle .controls {
+  opacity: 0;
+  transform: translate(-50%, 24px);
+  pointer-events: none;
+}
+
+/* ---- Hover (pointer devices only, so taps don't stick) ------------------- */
+
+@media (hover: hover) {
+  .mood-btn:hover:not([aria-pressed="true"]),
+  .icon-btn:not(.icon-btn--primary):hover {
+    background: var(--glass-hover);
+  }
+
+  .mood-btn:hover,
+  .icon-btn:hover {
+    transform: translateY(-1px);
+  }
+
+  .btn-start:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 16px 40px -8px var(--accent);
+  }
+}
+
+.mood-btn:active,
+.icon-btn:active,
+.btn-start:active {
+  transform: scale(0.96);
+}
+
+/* ---- Mobile ------------------------------------------------------------- */
+
+@media (max-width: 640px) {
+  .welcome__card {
+    padding: var(--space-5) var(--space-4);
+  }
+
+  .controls {
+    left: var(--space-2);
+    right: var(--space-2);
+    bottom: max(var(--space-2), env(safe-area-inset-bottom));
+    width: auto;
+    max-width: none;
+    padding: var(--space-3);
+    border-radius: var(--radius);
+    transform: none;
+  }
+
+  body.idle .controls {
+    transform: translateY(24px);
+  }
+
+  /* Mood chips scroll sideways instead of wrapping onto many lines. */
+  .controls .mood-list {
+    flex-wrap: nowrap;
+    justify-content: flex-start;
+    width: 100%;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  .controls .mood-list::-webkit-scrollbar {
+    display: none;
+  }
+
+  .controls__row {
+    gap: var(--space-2);
+  }
+
+  .slider span {
+    display: none;
+  }
+
+  .slider input {
+    width: min(110px, 24vw);
+  }
+}
+
+/* ---- Misc --------------------------------------------------------------- */
+
+.noscript {
+  position: fixed;
+  inset: auto 0 var(--space-6);
+  z-index: 5;
+  text-align: center;
+}
+
+@keyframes shimmer {
+  to { background-position: 200% center; }
+}
+
+@keyframes rise {
+  from { opacity: 0; transform: translateY(16px) scale(0.98); }
+}
+
+@keyframes fade-in {
+  from { opacity: 0; }
+}
+
+@keyframes flash {
+  from { opacity: 0.6; }
+  to { opacity: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
